@@ -43,9 +43,14 @@ function Recorder() {
       setAudioUrl(localUrl);
 
       // OPTIONAL: upload to backend here
-      // const formData = new FormData();
-      // formData.append("audio", blob);
-      // await fetch("http://localhost:5000/api/audio/upload", { method: "POST", body: formData });
+      const formData = new FormData();
+      formData.append("audio", blob);
+      const response = await fetch("http://localhost:5000/api/audio/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await response.json();
+     setAudioUrl(data.fileUrl); // Cloudinary URL
     };
 
     mediaRecorderRef.current.start();
