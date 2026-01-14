@@ -1,82 +1,30 @@
-// const cloudinary = require("../config/cloudinary");
-// const Audio = require("../models/Audio");
-
 // const uploadAudio = async (req, res) => {
 //   try {
 //     if (!req.file) {
-//       return res.status(400).json({ message: "No file uploaded" });
+//       return res.status(400).json({ error: "No file uploaded" });
 //     }
+//     const result = await cloudinary.uploader.upload_stream(
+//       { resource_type: "video" },
+//       async (error, result) => {
+//         if (error) {
+//           return res.status(500).json({ error: "Cloudinary upload failed" });
+//         }
+//         const newAudio = new Audio({
+//           url: result.secure_url,
+//           public_id: result.public_id,
+//           original_filename: result.original_filename,
+//         });
+//         await newAudio.save();
+//         res.status(201).json(newAudio,{
+//           message: "Audio uploaded successfully"
 
-//     // Upload to Cloudinary
-//     const result = await cloudinary.uploader.upload(req.file.path, {
-//       resource_type: "video", // audio/webm treated as video
-//       folder: "voice-notes",
-//     });
-
-//     // Save metadata in MongoDB
-//     const audio = await Audio.create({
-//       audioUrl: result.secure_url,
-//       format: "webm",
-//     });
-
-//     res.status(201).json({
-//       message: "Audio uploaded & saved",
-//       fileUrl: audio.audioUrl,
-//       audioId: audio._id,
-//     });
-//   } catch (err) {
-//     res.status(500).json({ error: err.message });
-//   }
-// };
-
-// const getAudios = async (req, res) => {
-//   const audios = await Audio.find().sort({ createdAt: -1 });
-//   res.json(audios);
-// };
-
-// module.exports = { uploadAudio, getAudios };
-// const cloudinary = require("../config/cloudinary");
-// const Audio = require("../models/Audio");
-// const streamifier = require("streamifier");
-
-// const uploadAudio = async (req, res) => {
-//   if (!req.file) {
-//     return res.status(400).json({ message: "No file uploaded" });
-//   }
-
-//   const result = await new Promise((resolve, reject) => {
-//     const stream = cloudinary.uploader.upload_stream(
-//       { resource_type: "video", folder: "voice-notes" },
-//       (error, result) => {
-//         if (result) resolve(result);
-//         else reject(error);
+//         });
 //       }
-//     );
-
-//     streamifier.createReadStream(req.file.buffer).pipe(stream);
-//   });
-
-//   const audio = await Audio.create({
-//     audioUrl: result.secure_url,
-//     format: req.file.mimetype,
-//   });
-
-//   res.status(201).json({
-//     message: "Audio uploaded & saved",
-//     fileUrl: audio.audioUrl,
-//   });
-// };
-// const getAudios = async (req, res) => {
-//   try {
-//     const audios = await Audio.find().sort({ createdAt: -1 });
-//     res.status(200).json(audios);
+//     ).end(req.file.buffer);
 //   } catch (err) {
 //     res.status(500).json({ error: err.message });
 //   }
 // };
-
-
-// module.exports = { uploadAudio, getAudios };
 const cloudinary = require("../config/cloudinary");
 const Audio = require("../models/Audio");
 
@@ -86,40 +34,53 @@ const uploadAudio = async (req, res) => {
       return res.status(400).json({ message: "No file uploaded" });
     }
 
-    const result = await cloudinary.uploader.upload(req.file.path, {
-      resource_type: "video",
-      folder: "voice-notes",
+    const uploadResult = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        {
+          resource_type: "video", // audio/webm treated as video
+          folder: "voice-notes",
+        },
+        (error, result) => {
+          if (error) reject(error);
+          else resolve(result);
+        }
+      );
+
+      stream.end(req.file.buffer);
     });
 
     const audio = await Audio.create({
-      audioUrl: result.secure_url,
+      audioUrl: uploadResult.secure_url,
       format: req.file.mimetype,
     });
-
-    return res.status(201).json({
+     console.log("Upload successful:", uploadResult);
+    res.status(201).json({
       message: "Audio uploaded & saved",
       fileUrl: audio.audioUrl,
       audioId: audio._id,
     });
-
-  } catch (error) {
-    console.error("Upload error:", error);
-
-    return res.status(500).json({
-      message: "Upload failed",
-      error: error.message || error,
-    });
+  } catch (err) {
+    console.error("Upload error:", err);
+    res.status(500).json({ error: err.message });
   }
 };
-
-module.exports = { uploadAudio };
 const getAudios = async (req, res) => {
   try {
     const audios = await Audio.find().sort({ createdAt: -1 });
     res.status(200).json(audios);
+    console.log("Fetched all audios:", audios);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
 module.exports = { uploadAudio, getAudios };
+
+// const getAudios = async (req, res) => {
+//   try {
+//     const audios = await Audio.find().sort({ createdAt: -1 });
+//     res.status(200).json(audios);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// };
