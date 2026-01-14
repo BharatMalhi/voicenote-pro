@@ -1,10 +1,7 @@
 const express = require("express");
-const multer = require("multer");
 const { uploadAudio, getAudios } = require("../controllers/audioController");
-
+const upload = require("../middleware/multer");
 const router = express.Router();
-
-const upload = multer({ dest: "temp/" });
 
 router.post("/upload", upload.single("audio"), uploadAudio);
 router.get("/", getAudios);
